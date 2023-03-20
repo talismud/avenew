@@ -47,4 +47,3 @@ class Phone(BaseType):
 
         self.db.phone_number = phone_number
         PhoneNumber.create(phone_number=phone_number, object=self.object)
-        print(f"Set phone number: {self.db.phone_number} for {self.object!r}")

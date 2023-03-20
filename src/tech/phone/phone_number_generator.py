@@ -33,6 +33,10 @@ from tools.generator import RandomGenerator
 
 """Module containing the phone number generator."""
 
+# Forbidden combinations.
+FORBIDDEN = [f"{i}{i + 1}{i + 2}" for i in range(0, 8)]
+FORBIDDEN += [f"{i}{i - 1}{i - 2}" for i in range(2, 10)]
+
 
 class PhoneNumberGenerator(RandomGenerator):
 
@@ -53,13 +57,14 @@ class PhoneNumberGenerator(RandomGenerator):
 
     checks = (
         "no_three_following_digits",
-        "no_more_than_four_same_digits",
+        "no_more_than_three_same_digits",
         "no_scale_patterns",
     )
 
     @classmethod
     def check_no_three_following_digits(cls, code: str) -> bool:
-        """Return whether this code is allowed (only check the end)."""
+        """Check that no three numbers follow in a row."""
+        code = code.replace("-", "")
         allowed = True
         if len(code) >= 3:
             last = code[-1]
@@ -68,14 +73,13 @@ class PhoneNumberGenerator(RandomGenerator):
         return allowed
 
     @classmethod
-    def check_no_more_than_four_same_digits(cls, code: str) -> bool:
-        """check that the same digit is present no more than 4 times."""
-        return all(code.count(char) < 4 for char in code if char.isdigit())
+    def check_no_more_than_three_same_digits(cls, code: str) -> bool:
+        """Check that the same digit is present no more than 3 times."""
+        code = code.replace("-", "")
+        return code.count(code[-1]) < 4 if code else True
 
     @classmethod
     def check_no_scale_patterns(cls, code: str) -> bool:
         """Avoid scale patterns (123, 321...)."""
         code = code.replace("-", "")
-        forbidden = [f"{i}{i + 1}{i + 2}" for i in range(1, 8)]
-        forbidden += [f"{i}{i - 1}{i - 2}" for i in range(3, 10)]
-        return all(scale not in code for scale in forbidden)
+        return all(not code.endswith(scale) for scale in FORBIDDEN)
