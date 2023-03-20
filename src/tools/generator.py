@@ -133,6 +133,7 @@ class RandomGenerator:
     """
 
     patterns = ()
+    checks = ()
 
     @classmethod
     def is_allowed(cls, code: str) -> bool:
@@ -141,6 +142,9 @@ class RandomGenerator:
         It is only necessary to check the end of the code since
         the code is built (with valid parts) from left to right.
         Only the last character of the code is in doubt.
+
+        You can override this method to add rules, but it is advisable
+        to define checks (see class help).
 
         Simply returns `False` if this code isn't valid to implement rules.
 
@@ -151,7 +155,22 @@ class RandomGenerator:
             allowed (bool): whether this is a valid choice.
 
         """
-        return True
+        checks = []
+        for name in cls.checks:
+            method_name = f"check_{name}"
+            method = getattr(cls, method_name, None)
+            if method is None:
+                raise ValueError(
+                    "one of the configured checks for this generator, "
+                    f"{name!r}, doesn't have a matching method "
+                    f"{method_name!r}.  Please add one as a classmethod "
+                    "taking one argument besides `cls` (the code to check) "
+                    "and returning a boolean"
+                )
+
+            checks.append(method(code))
+
+        return all(checks)
 
     @classmethod
     def generate(cls):
