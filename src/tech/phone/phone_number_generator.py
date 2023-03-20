@@ -43,9 +43,9 @@ class PhoneNumberGenerator(RandomGenerator):
     patterns = (
         "5",
         "5",
-        "6789",
+        "9",
         "-",
-        digits,
+        "23456789",
         digits,
         digits,
         "-",
@@ -59,6 +59,7 @@ class PhoneNumberGenerator(RandomGenerator):
         "no_three_following_digits",
         "no_more_than_three_same_digits",
         "no_scale_patterns",
+        "no_x11_in_central_office_code",
     )
 
     @classmethod
@@ -83,3 +84,8 @@ class PhoneNumberGenerator(RandomGenerator):
         """Avoid scale patterns (123, 321...)."""
         code = code.replace("-", "")
         return all(not code.endswith(scale) for scale in FORBIDDEN)
+
+    @classmethod
+    def check_no_x11_in_central_office_code(cls, code: str) -> bool:
+        """The Central Office Code shouldn't end with 11."""
+        return not (len(code) == 3 and code.endswith("11"))
