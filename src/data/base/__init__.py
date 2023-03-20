@@ -76,6 +76,7 @@ def handle_data(
     from data.player import Player
     from data.room import Room
     from data.session import Session
+    from tech.phone.phone_number import PhoneNumber
 
     engine = SqliteEngine()
     kwargs = dict(file_name="talismud.db", memory=memory, logging=logging)
@@ -91,6 +92,7 @@ def handle_data(
             Object,
             ObjectPrototype,
             Player,
+            PhoneNumber,
             Room,
             Session,
         }

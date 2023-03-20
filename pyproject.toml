@@ -16,7 +16,7 @@ include = [
 ]
 
 [tool.poetry.scripts]
-talismud = 'talismud:run'
+avenew = 'talismud:run'
 
 [tool.poetry.dependencies]
 alembic = "^1.7"
