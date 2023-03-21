@@ -173,7 +173,7 @@ class RandomGenerator:
         return all(checks)
 
     @classmethod
-    def generate(cls):
+    def generate(cls) -> str:
         """Generate a random and unique number.
 
         The process to generate random numbers is described in the module
@@ -195,11 +195,17 @@ class RandomGenerator:
                     choices.discard(part)
 
             if len(choices) == 0:
-                raise ValueError(
-                    "no valid code can be generated.  "
-                    "This indicates the set of possible patterns "
-                    "is used up entirely"
-                )
+                if code:
+                    cls._save_trail(trail + [(code, set())])
+                    code = code[:-1]
+                    trail.pop()
+                    continue
+                else:
+                    raise ValueError(
+                        "no valid code can be generated.  "
+                        "This indicates the set of possible patterns "
+                        "is used up entirely"
+                    )
 
             # Find a random part.  We don't rely on `set.pop`.
             next_part = choice(tuple(choices))

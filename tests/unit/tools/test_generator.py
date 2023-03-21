@@ -183,3 +183,31 @@ def test_generate_with_checks(db):
             assert not number[i:].startswith(digit * 3)
             if digit.isdigit():
                 assert number.count(digit) < 4
+
+
+class CodeGeneratorWithChecks(RandomGenerator):
+
+    patterns = (
+        "ab",
+        "ab",
+        "ab",
+    )
+
+    checks = ("no_exceptions",)
+
+    @classmethod
+    def check_no_exceptions(cls, code: str) -> bool:
+        """Return whether this code is allowed (only check the end)."""
+        forbidden = ("abb", "aba")
+        return code not in forbidden
+
+
+def test_generate_and_exhaust_with_checks(db):
+    # The `CodeGeneratorWithChecks` class contains two rules actually
+    # contradicting the patterns.  Check that unique codes are still generated.
+    db.bind({Generator})
+    for _ in range(6):
+        CodeGeneratorWithChecks.generate()
+
+    with pytest.raises(ValueError):
+        CodeGeneratorWithChecks.generate()
