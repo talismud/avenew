@@ -32,8 +32,7 @@
 from typing import TYPE_CHECKING
 
 from data.base.node import Field, Node
-from data.handler.coordinates import CoordinateHandler
-from data.exit import Direction
+from data.direction import Direction
 from data.handler.coordinates import CoordinateHandler
 from data.handler.description import DescriptionHandler
 from data.handler.exits import ExitHandler
