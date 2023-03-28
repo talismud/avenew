@@ -451,7 +451,9 @@ class ModelMetaclass(BaseModelMetaclass):
         query = (nattr.name == name) & (nattr.value == pickle.dumps(value))
         return cls.engine.select_values(cls, nattr.model, query=query)
 
-    def get_attributes(cls, name, query: SQLRole) -> list[Any]:
+    def get_attributes(
+        cls, name: str, query: SQLRole | None = None
+    ) -> list[Any]:
         """Return the attribute values matching a specific query.
 
         Args:
@@ -463,7 +465,11 @@ class ModelMetaclass(BaseModelMetaclass):
 
         """
         nattr = cls.nattr
-        query &= nattr.name == name
+        if query is None:
+            query = nattr.name == name
+        else:
+            query &= nattr.name == name
+
         raw = cls.engine.select_values(cls, nattr.value, query)
         values = []
         for value in raw:

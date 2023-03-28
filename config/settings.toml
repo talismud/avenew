@@ -137,7 +137,20 @@ return_room = "begin"
 # (Individual clients/players can change that setting for their connection.)
 default_encoding = "utf-8"
 
-# 6. Content creation settings
+# 6. Input settings
+# These settings affect how commands and context input is handled by the game.
+
+# Allow shortening of command names
+# If set to true, commands can be shortened without specifying aliases.
+# For instance, if a command is named `look`, then the player can enter
+# `loo` or `lo` (or even `l`) to access it.  Individual commands
+# can specify that they cannot be shortened (this is useful
+# for security commands where the player, or administrator, has to
+# be certain of the action; allowing to shorten the 'shutdown' command
+# to 'sh' could be problematic for instance).
+can_shorten_commands = true
+
+# 7. Content creation settings
 
 # These settings affect how your builders can work to contribute content
 # to TalisMUD.

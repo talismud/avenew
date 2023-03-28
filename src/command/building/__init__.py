@@ -1,4 +1,4 @@
-# Copyright (c) 2022, LE GOFF Vincent
+# Copyright (c) 2023, LE GOFF Vincent
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
@@ -27,48 +27,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-"""The exit object, a link."""
 
-from typing import TYPE_CHECKING
+"""Building commands."""
 
-from data.direction import Direction
-from data.base.link import Field, Link
-
-if TYPE_CHECKING:
-    from data.character import Character
-
-
-class Exit(Link):
-
-    """Link to represent a one-way exit between two rooms."""
-
-    direction: Direction = Direction.INVALID
-    name: str = "not set"
-    aliases: set[str] = Field(default_factory=set)
-
-    @property
-    def origin(self):
-        return type(self).get(id=self.origin_id)
-
-    @property
-    def destination(self):
-        destination_id = self.destination_id
-        return type(self).get(id=destination_id) if destination_id else None
-
-    def can_see(self, character: "Character") -> bool:
-        """Return whether this exit can be seen by this character.
-
-        Args:
-            character (Character): the character trying to see this exit.
-
-        """
-        return True
-
-    def get_name_for(self, character: "Character") -> str:
-        """Return the exit name for this character.
-
-        Args:
-            character (Character): the character seeing this exit.
-
-        """
-        return self.name
+CATEGORY = "Building commands"
+PERMISSIONS = "admin"

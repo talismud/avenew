@@ -34,6 +34,7 @@ from io import StringIO
 import sys
 
 from context.base import Context
+from tools.picklable import picklable_dict
 
 
 class Py(Context):
@@ -55,12 +56,19 @@ class Py(Context):
             self: the character calling this Python console.
     """
 
-    def __init__(self, session, options):
-        super().__init__(session, options)
+    def __init__(self, session, character, options):
+        super().__init__(session, character, options)
         self.buffer = ""
         self.console = None
         self.completed = True
-        self.variables = {}
+
+    def __getstate__(self):
+        state = dict(self.__dict__)
+        state.pop("console", None)
+        variables = dict(state["options"].get("variables", {}))
+        variables.pop("__builtins__", None)
+        state["options"]["variables"] = picklable_dict(variables)
+        return state
 
     def greet(self) -> str:
         """Return the text when greeting the character in this context."""
@@ -83,7 +91,10 @@ class Py(Context):
         """Handle user input."""
         # Create a console, if there's none.
         if getattr(self, "console", None) is None:
-            self.console = InteractiveConsole(self.variables)
+            variables = self.options.get("variables", {})
+            variables["self"] = self.character
+            variables.update(type(self).service.parent.console.locals)
+            self.console = InteractiveConsole(variables)
             # Push the buffer.
             self.console.push(self.buffer)
 
@@ -109,6 +120,7 @@ class Py(Context):
 
         out.seek(0)
         self.msg(f"{out.read()}")
+        self.character.contexts.save()
 
         return True
 

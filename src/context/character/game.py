@@ -48,6 +48,8 @@ Note:
 
 """
 
+from dynaconf import settings
+
 from command.base import Command
 from context.base import Context
 
@@ -70,35 +72,106 @@ class Game(Context):
 
     def handle_input(self, user_input: str):
         """Route the user input to the context stack."""
-        character = self.session.character
-        commands = Command.service.commands
-        seps = {sep: () for comm in commands.values() for sep in comm.seps}
-        for sep in seps.keys():
-            try:
-                before, after = user_input.split(sep, 1)
-            except ValueError:
-                before = user_input
-                after = ""
+        character = self.character
+        commands = root = list(Command.service.commands.values())
+        parent = command = method = None
+        while commands:
+            names = {}
+            commands = {
+                cls
+                for cls in commands
+                if cls.parent is parent and cls.can_run(character)
+            }
+            seps = {sep: () for comm in commands for sep in comm.seps}
+            for sep in seps.keys():
+                try:
+                    before, after = user_input.split(sep, 1)
+                except ValueError:
+                    before, after = user_input, ""
 
-            seps[sep] = (before, after)
+                seps[sep] = (before, after)
 
-        for command_cls in commands.values():
-            aliases = command_cls.alias
-            if isinstance(aliases, str):
-                aliases = (aliases,)
+            # Create a dictionary (hashed structure) to access command names.
+            for cls in commands:
+                record_names(names, cls.name, cls)
 
-            for sep in command_cls.seps:
-                before, after = seps[sep]
-                if before == command_cls.name or before in aliases:
-                    if character and not command_cls.can_run(character):
-                        continue
+                # Add aliases.
+                if alias := cls.alias:
+                    if isinstance(alias, str):
+                        aliases = (alias,)
+                    else:
+                        aliases = alias
 
-                    command = command_cls(character, sep, after)
-                    command.parse_and_run()
-                    return True
+                    for alias in aliases:
+                        record_names(names, alias, cls)
 
-        return False
+            # Add global aliases if theree's no parent.
+            if parent is None:
+                sub_commands = [cls for cls in root if cls.parent is not None]
+                for cls in sub_commands:
+                    if alias := cls.global_alias:
+                        if isinstance(alias, str):
+                            aliases = (alias,)
+                        else:
+                            aliases = alias
+
+                        for alias in aliases:
+                            record_names(names, alias, cls)
+
+            # We have a dictionary containing completion commands names.
+            # We then try to match the command using different separators.
+            for before, after in seps.values():
+                command = names.get(before, None)
+                if command is not None:
+                    parent = command
+                    commands = command.sub_commands
+                    user_input = after
+                    break
+
+            if command is None:
+                command = parent
+                method = "display_sub_commands"
+                commands = None
+
+        found = False
+        if command:
+            command = command(character, sep, after)
+            if method is None:
+                method = command.parse_and_run
+            else:
+                method = getattr(command, method)
+            method()
+            found = True
+
+        return found
 
     def unknown_input(self, user_input: str) -> str:
         """What to do when the input doesn't match?"""
         return f"Command not found: {user_input}"
+
+
+def can_shorten(command: Command) -> bool:
+    """Can this command be shortened, using aliases?"""
+    return settings.CAN_SHORTEN_COMMANDS and command.can_shorten
+
+
+def record_names(
+    names: dict[str, Command], name: str, command: Command
+) -> None:
+    """Record the names for the given command under the given name.
+
+    Args:
+        names (dict): the names to update.
+        name (str): the command name to add.
+        command (Command): the command matching this name.
+
+    If the command can be shortened, also add partial names.
+
+    """
+    names[name] = command
+
+    # Add completition names.
+    if can_shorten(command):
+        for i in range(len(name) - 1, 0, -1):
+            partial = name[:i]
+            names.setdefault(partial, command)

@@ -32,7 +32,8 @@
 from typing import Optional, TYPE_CHECKING
 
 from data.handler.abc import BaseHandler
-from data.exit import Exit, Direction
+from data.direction import Direction
+from data.exit import Exit
 
 if TYPE_CHECKING:
     from data.character import Character
@@ -67,6 +68,16 @@ class ExitHandler(BaseHandler):
         """Only return visible exits by this character."""
         return [exit for exit in self.all if exit.can_see(character)]
 
+    def has(self, direction: Direction) -> bool:
+        """Return whether this room has an exit in this direction.
+
+        Args:
+            direction (Direction): the direction in which to test.
+
+        """
+        self.load_exits()
+        return direction in self._exits
+
     def add(
         self,
         direction: Direction,
@@ -97,11 +108,12 @@ class ExitHandler(BaseHandler):
 
         origin, _ = self.model
         exit = Exit.create(
+            key=direction.value,
             direction=direction,
             origin_id=origin.id,
             destination_id=destination.id,
             name=name,
-            aliases=aliases,
+            aliases=aliases or (),
         )
         self._exits[direction] = exit
         self.save()
@@ -109,9 +121,9 @@ class ExitHandler(BaseHandler):
         if back:
             destination.exits.load_exits()
             opposite = direction.opposite
-            if opposite not in direction.exits.exits:
-                direction.exits.add(
-                    opposite, origin, str(opposite), back=False
+            if not destination.exits.has(opposite):
+                destination.exits.add(
+                    opposite, origin, opposite.value, back=False
                 )
 
         return exit

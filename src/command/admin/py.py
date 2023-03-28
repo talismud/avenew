@@ -48,19 +48,18 @@ class Py(Command):
 
     def run(self, code: str = ""):
         """Run the command."""
-        # Create the global variables
+        # If there's no code, open the `admin.py` context.
+        if not code:
+            self.session.character.contexts.add("admin.python")
+            return
+
         vars = {
             "self": self.character,
         }
         vars.update(type(self).service.parent.console.locals)
 
-        # If there's no code, open the `admin.py` context.
-        if not code:
-            context = self.session.character.contexts.add("admin.python")
-            context.variables = vars
-            return
-
         # First try to evaluate it.
+        self.msg(f">>> {code}")
         try:
             result = eval(code, vars)
         except SyntaxError:
@@ -72,4 +71,4 @@ class Py(Command):
         except Exception:
             self.msg(traceback.format_exc())
         else:
-            self.msg(str(result))
+            self.msg(repr(result))

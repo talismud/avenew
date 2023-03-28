@@ -36,6 +36,8 @@ class ChannelCommand(Command):
 
     """Abstract command for channels."""
 
+    can_shorten = False
+
     @classmethod
     def get_help(cls, character=None):
         """Return the help for this command."""

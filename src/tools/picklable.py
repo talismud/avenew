@@ -1,4 +1,4 @@
-# Copyright (c) 2022, LE GOFF Vincent
+# Copyright (c) 2023, LE GOFF Vincent
 # All rights reserved.
 
 # Redistribution and use in source and binary forms, with or without
@@ -27,48 +27,33 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 
-"""The exit object, a link."""
 
-from typing import TYPE_CHECKING
+"""Module containing utilities to transform a collection."""
 
-from data.direction import Direction
-from data.base.link import Field, Link
-
-if TYPE_CHECKING:
-    from data.character import Character
+import pickle
+from typing import Any
 
 
-class Exit(Link):
+def picklable_dict(origin: dict[Any, Any]) -> dict[Any, Any]:
+    """Keep the values that can be pickled from a dictionary.
 
-    """Link to represent a one-way exit between two rooms."""
+    Args:
+        origin (dict): the origin dictionary.
 
-    direction: Direction = Direction.INVALID
-    name: str = "not set"
-    aliases: set[str] = Field(default_factory=set)
+    Returns:
+        can_be_pickled (dict): a dictionary.
 
-    @property
-    def origin(self):
-        return type(self).get(id=self.origin_id)
+    Values that cannot be pickled will not be present in the
+    returned dictionary.
 
-    @property
-    def destination(self):
-        destination_id = self.destination_id
-        return type(self).get(id=destination_id) if destination_id else None
+    """
+    safe = {}
+    for key, value in origin.items():
+        try:
+            pickle.dumps((key, value))
+        except TypeError:
+            pass
+        else:
+            safe[key] = value
 
-    def can_see(self, character: "Character") -> bool:
-        """Return whether this exit can be seen by this character.
-
-        Args:
-            character (Character): the character trying to see this exit.
-
-        """
-        return True
-
-    def get_name_for(self, character: "Character") -> str:
-        """Return the exit name for this character.
-
-        Args:
-            character (Character): the character seeing this exit.
-
-        """
-        return self.name
+    return safe

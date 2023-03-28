@@ -198,6 +198,7 @@ class Service(BaseService):
         ctx_logger.debug(f"{loaded} context{s} {was} loaded successfully.")
         CONTEXTS.clear()
         CONTEXTS.update(self.contexts)
+        Context.service = self
 
     def load_commands(self):
         """Load the commands dynamically.
@@ -211,6 +212,7 @@ class Service(BaseService):
             parent=Path("command"),
             exclude=(
                 Path("command/args"),
+                Path("command/abc.py"),
                 Path("command/base.py"),
                 Path("command/log.py"),
                 Path("command/namespace.py"),
@@ -235,7 +237,11 @@ class Service(BaseService):
             Channel,
             chn_logger,
             parent=Path("channel"),
-            exclude=(Path("channel/log.py"), Path("channel/base.py")),
+            exclude=(
+                Path("channel/abc.py"),
+                Path("channel/base.py"),
+                Path("channel/log.py"),
+            ),
         )
         self.channels.update(channels)
         s = "s" if len(channels) > 1 else ""

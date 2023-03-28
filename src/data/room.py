@@ -32,6 +32,7 @@
 from typing import TYPE_CHECKING
 
 from data.base.node import Field, Node
+from data.exit import Direction
 from data.handler.description import DescriptionHandler
 from data.handler.exits import ExitHandler
 
@@ -73,3 +74,72 @@ class Room(Node):
         ]
 
         return "\n".join(lines)
+
+    def create_neighbor(
+        self,
+        direction: Direction,
+        barcode: str | None = None,
+        title: str | None = None,
+    ) -> "Room":
+        """Create a room in the given direction.
+
+        This is primarly used by builders to extend the world.
+
+        Args:
+            direction (Direction): the direction in which to build.
+            barcode (str or None): the new room's barcode.  If not set,
+                    it will try to find one.
+            title (str or None): the new room's title.  If not set, it will
+                    use the current room's title.
+
+        Returns:
+            new_room (Room): the newly-created room.
+
+        """
+        if self.exits.has(direction):
+            raise ValueError(f"the direction {direction} is already used")
+
+        title = self.title if title is None else title
+        if barcode is None:
+            barcode = self.find_next_barcode(self.barcode)
+
+        destination = type(self).create(barcode=barcode, title=title)
+
+        # If coordinates are implemented, update the neighbor.
+        if coordinates := getattr(self, "coordinates", None):
+            if coordinates:
+                projected = coordinates.project(direction)
+                destination.coordinates.update(*projected)
+
+        # Create exits.
+        self.exits.add(direction, destination, direction.value)
+
+        return destination
+
+    @classmethod
+    def find_next_barcode(cls, barcode: str) -> str:
+        """Find the next barcode, if possible.
+
+        Args:
+            barcode (str): the old barcode.
+
+        Returns:
+            barcode (str): the new (unique) barcode.
+
+        """
+        barcodes = cls.get_attributes("barcode")
+
+        try:
+            prefix, suffix = barcode.rsplit(":", 1)
+        except ValueError:
+            prefix, suffix = "", barcode
+
+        while suffix and suffix[-1].isdigit():
+            suffix = suffix[:-1]
+
+        i = 1
+        prefix = f"{prefix}:" if prefix else ""
+        while (barcode := f"{prefix}{suffix}{i}") in barcodes:
+            i += 1
+
+        return barcode

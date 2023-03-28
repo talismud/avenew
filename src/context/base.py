@@ -48,11 +48,15 @@ a single context: the one that interprets commands.
 import inspect
 from textwrap import dedent
 import traceback
-from typing import Optional, Union
+from typing import Any, Optional, Union, TYPE_CHECKING
 
 from context.log import logger
 from data.decorators import lazy_property
 from tools.delay import Delay
+
+if TYPE_CHECKING:
+    from data.character import Character
+    from data.session import Session
 
 CONTEXTS = {}
 
@@ -148,17 +152,59 @@ class Context:
     }
     hide_input = False
 
-    def __init__(self, session, options=None):
-        self.session = session
+    def __init__(
+        self,
+        session: Optional["Session"] = None,
+        character: Optional["Character"] = None,
+        options: dict[str, Any] = None,
+    ):
+        if session is None and character is None:
+            raise ValueError(
+                "a context must have either a session or a character"
+            )
+        elif session is not None and character is not None:
+            raise ValueError(
+                "a context cannot have both session and character"
+            )
+
+        self._session = session
+        self._character = character
         self.options = options if isinstance(options, dict) else {}
 
-    def __str__(self):
-        return self.pyname
+    def __repr__(self):
+        name = self.pyname
+        if session := self._session:
+            name += f"({session!r})"
+        elif character := self._character:
+            name += f"({character!r})"
+        else:
+            name += "(?)"
+
+        return name
 
     @lazy_property
     def character(self):
-        """Return the session's character, if any."""
-        return self.session and self.session.character or None
+        """Return the character or the session's character."""
+        if (character := self._character) is None:
+            character = self._session and self._session.character or None
+
+        return character
+
+    @lazy_property
+    def session(self):
+        """Return the session or the character's session."""
+        if (session := self._session) is None:
+            session = self._character and self._character.session or None
+
+        return session
+
+    @session.setter
+    def session(self, session: Optional["Session"]) -> None:
+        """Update the context's session."""
+        if self._session is not None:
+            self._session = session
+        elif self._character is not None:
+            self._character.session = session
 
     def greet(self) -> Optional[str]:
         """Greet the session or character.
@@ -243,7 +289,8 @@ class Context:
         call `other_input` and send the entire user input as argument.
 
         Don't override `handle_input`, just create `input_...` and
-        `other_input` methods on the context.
+        `other_input` methods on the context, except if you have
+        a specific need to intercept all inputs.
 
         Args:
             user_input (str): the user input.
@@ -256,9 +303,12 @@ class Context:
 
         # Look for an input methods.
         method = None
-        method_name = type(self).inputs.get(command or user_input)
-        if method_name:
-            method = getattr(self, method_name, None)
+        if user_input:
+            method_name = type(self).inputs.get(command or user_input)
+            if method_name:
+                method = getattr(self, method_name, None)
+        else:
+            method = self.press_return
 
         if method is None:
             # Try to find an input_{command} method
@@ -310,7 +360,7 @@ class Context:
 
         """
         NewContext = CONTEXTS[context_path]
-        new_context = NewContext(self.session)
+        new_context = NewContext(self._session, self._character)
         self.leave()
         self.session.context = new_context
         new_context.enter()

@@ -34,9 +34,9 @@ import inspect
 from pathlib import Path
 from textwrap import dedent
 import traceback
-from typing import Any, Dict, Sequence, TYPE_CHECKING
+from typing import Any, Dict, Sequence, Type, TYPE_CHECKING
 
-
+from command.abc import CommandMetaclass
 from command.args import ArgumentError, CommandArgs, Namespace
 from command.log import logger
 from command.namespace import ProxyNamespace
@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 _NOT_SET = object()
 
 
-class Command:
+class Command(metaclass=CommandMetaclass):
 
     """Base class for commands.
 
@@ -140,13 +140,19 @@ class Command:
 
     """
 
-    args = CommandArgs()
-    seps = " "
-    alias = ()
-    in_help = True
+    args: CommandArgs = CommandArgs()
+    seps: str | tuple[str] = " "
+    alias: str | tuple[str] = ()
+    in_help: bool = True
+    can_shorten: bool = True
+
+    # Sub-commands only
+    parent: Type["Command"] | None = None
+    global_alias: str | tuple[str] = ()
 
     # Do not override this.
     service: BaseService
+    sub_commands: set["Command"] = set()
 
     def __init__(self, character=None, sep=None, arguments=""):
         self.character = character
@@ -279,6 +285,28 @@ class Command:
 
         """
         self.character.msg(text)
+
+    def display_sub_commands(self) -> None:
+        """Display sub-commands to help syntax."""
+        lines = [
+            f"Available sub-commands for {self.name}:",
+            "",
+        ]
+
+        max_name = max(len(cls.name) for cls in type(self).sub_commands)
+        for sub in type(self).sub_commands:
+            if not sub.can_run(self.character):
+                continue
+
+            name = sub.name
+            synopsis = sub.get_help(self.character)
+            synopsis = synopsis.splitlines()[0]
+            limit = 72 - max_name
+            if len(synopsis) > limit:
+                synopsis = synopsis[:limit] + "..."
+            lines.append(f"  {name:<{max_name}} - {synopsis}")
+
+        self.msg("\n".join(lines))
 
     def call_in(self, *args, **kwargs):
         """Schedule a callback to run in X seconds.

@@ -96,6 +96,7 @@ class Options(Argument):
                 "one of the name is already being used by another option"
             )
 
+        dest = name if dest is None else dest
         option = Option(names, optional=optional, default=default, dest=dest)
 
         self.options.append(option)

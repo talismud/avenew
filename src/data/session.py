@@ -72,7 +72,7 @@ class Session(Model):
         if cls is None:
             raise ValueError(f"the context {self.context_path} doesn't exist")
 
-        return cls(self, self.context_options)
+        return cls(self, None, self.context_options)
 
     @context.setter
     def context(self, new_context):
@@ -104,6 +104,10 @@ class Session(Model):
         """Login to a character."""
         self.character = character
         character.session = self
+
+        # Browse contexts in context stack.
+        for context in character.contexts:
+            context.session = self
 
         # Place the character in a valid room, if at all possible.
         room = character.room

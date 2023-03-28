@@ -40,6 +40,8 @@ class Shutdown(Command):
 
     """
 
+    can_shorten = False
+
     def run(self, args):
         """Run the command."""
         self.msg("Preparing to stop the game and portal.")

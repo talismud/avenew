@@ -704,10 +704,10 @@ class SqliteEngine:
 
                 self.cache.put(model)
 
-            # Build attributes.
-            for attr in external:
-                with self._load_model():
-                    setattr(model, attr.name, pickle.loads(attr.value))
+                # Build attributes.
+                for attr in external:
+                    with self._load_model():
+                        setattr(model, attr.name, pickle.loads(attr.value))
 
             self._prepare_model(model)
             if model not in models:

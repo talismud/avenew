@@ -41,6 +41,16 @@ class ContextHandler(BaseHandler):
         super().__init__(*args, **kwargs)
         self._contexts = []
 
+    def __iter__(self):
+        self._put_at_least_one()
+        contexts = [ctx for ctx in self._contexts if ctx is not ...]
+        return iter(contexts)
+
+    def __str__(self):
+        active = self.active
+        names = [f"{'*' if ctx is active else ''}{ctx!r}" for ctx in self]
+        return f"[{' ,'.join(names)}]"
+
     @property
     def active(self):
         """Return the active context."""
@@ -81,11 +91,7 @@ class ContextHandler(BaseHandler):
         if character is None:
             raise ValueError("no character defined for this context stack")
 
-        session = character.session
-        if session is None:
-            raise ValueError("no session linked with this character")
-
-        new_context = context_cls(session, options)
+        new_context = context_cls(None, character, options)
 
         # Call `enter`.
         if not silent:
@@ -153,7 +159,7 @@ class ContextHandler(BaseHandler):
         if not self._contexts:
             context_cls = CONTEXTS["character.game"]
             character, _ = self.model
-            new_context = context_cls(character.session)
+            new_context = context_cls(None, character)
             self._contexts.insert(0, new_context)
             self._contexts.insert(0, ...)
             object.__setattr__(self, "_default_context", new_context)

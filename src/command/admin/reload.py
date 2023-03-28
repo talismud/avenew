@@ -42,6 +42,7 @@ class Reload(Command):
     """
 
     alias = "restart"
+    can_shorten = False
 
     def run(self, args):
         """Run the command."""
